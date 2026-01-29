@@ -1,0 +1,143 @@
+import { useState } from 'react';
+import { Plus, StickyNote } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useNotes } from '@/hooks/useNotes';
+import { Note, Category } from '@/types/note';
+import { NoteCard } from '@/components/NoteCard';
+import { NoteDialog } from '@/components/NoteDialog';
+import { SearchBar } from '@/components/SearchBar';
+import { CategoryFilter } from '@/components/CategoryFilter';
+import { EmptyState } from '@/components/EmptyState';
+import { DeleteDialog } from '@/components/DeleteDialog';
+import { useToast } from '@/hooks/use-toast';
+
+const Index = () => {
+  const {
+    notes,
+    totalNotes,
+    searchQuery,
+    setSearchQuery,
+    filterCategory,
+    setFilterCategory,
+    addNote,
+    updateNote,
+    deleteNote,
+  } = useNotes();
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const handleAddNote = () => {
+    setEditingNote(null);
+    setDialogOpen(true);
+  };
+
+  const handleEditNote = (note: Note) => {
+    setEditingNote(note);
+    setDialogOpen(true);
+  };
+
+  const handleSaveNote = (title: string, content: string, category: Category) => {
+    if (editingNote) {
+      updateNote(editingNote.id, { title, content, category });
+      toast({
+        title: 'Catatan diperbarui',
+        description: 'Perubahan telah disimpan.',
+      });
+    } else {
+      addNote(title, content, category);
+      toast({
+        title: 'Catatan ditambahkan',
+        description: 'Catatan baru berhasil disimpan.',
+      });
+    }
+  };
+
+  const handleDeleteClick = (id: string) => {
+    setNoteToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (noteToDelete) {
+      deleteNote(noteToDelete);
+      toast({
+        title: 'Catatan dihapus',
+        description: 'Catatan telah dihapus.',
+      });
+      setNoteToDelete(null);
+    }
+    setDeleteDialogOpen(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border/50">
+        <div className="max-w-5xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl gradient-warm flex items-center justify-center">
+                <StickyNote className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-foreground">Catatan Saya</h1>
+                <p className="text-sm text-muted-foreground">
+                  {totalNotes} catatan tersimpan
+                </p>
+              </div>
+            </div>
+            <Button onClick={handleAddNote} className="gradient-warm border-0 shadow-md">
+              <Plus className="h-4 w-4 mr-2" />
+              Tambah
+            </Button>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1">
+              <SearchBar value={searchQuery} onChange={setSearchQuery} />
+            </div>
+            <CategoryFilter value={filterCategory} onChange={setFilterCategory} />
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-5xl mx-auto px-4 py-6">
+        {notes.length === 0 ? (
+          <EmptyState hasNotes={totalNotes > 0} onAddNote={handleAddNote} />
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {notes.map((note) => (
+              <NoteCard
+                key={note.id}
+                note={note}
+                onEdit={handleEditNote}
+                onDelete={handleDeleteClick}
+              />
+            ))}
+          </div>
+        )}
+      </main>
+
+      {/* Dialogs */}
+      <NoteDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        note={editingNote}
+        onSave={handleSaveNote}
+      />
+
+      <DeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleConfirmDelete}
+      />
+    </div>
+  );
+};
+
+export default Index;
